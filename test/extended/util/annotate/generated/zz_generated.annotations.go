@@ -629,17 +629,17 @@ var Annotations = map[string]string{
 
 	"[sig-builds][Feature:Builds][valueFrom] process valueFrom in build strategy environment variables should successfully resolve valueFrom in s2i build environment variables [apigroup:build.openshift.io]": " [Skipped:Disconnected] [Suite:openshift/conformance/parallel]",
 
-	"[sig-builds][Feature:Builds][volumes] build volumes should mount given secrets and configmaps into the build pod for docker strategy builds [apigroup:image.openshift.io][apigroup:build.openshift.io][apigroup:apps.openshift.io]": " [Suite:openshift/conformance/parallel]",
+	"[sig-builds][Feature:Builds][volumes] build volumes should mount given secrets and configmaps into the build pod for docker strategy builds [apigroup:image.openshift.io][apigroup:build.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-builds][Feature:Builds][volumes] build volumes should mount given secrets and configmaps into the build pod for source strategy builds [apigroup:image.openshift.io][apigroup:build.openshift.io][apigroup:apps.openshift.io]": " [Suite:openshift/conformance/parallel]",
+	"[sig-builds][Feature:Builds][volumes] build volumes should mount given secrets and configmaps into the build pod for source strategy builds [apigroup:image.openshift.io][apigroup:build.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-builds][Feature:Builds][volumes] csi build volumes within Tech Preview enabled cluster [apigroup:config.openshift.io] should mount given csi shared resource secret into the build pod for docker strategy builds [apigroup:image.openshift.io][apigroup:build.openshift.io][apigroup:apps.openshift.io]": " [Suite:openshift/conformance/parallel]",
+	"[sig-builds][Feature:Builds][volumes] csi build volumes within Tech Preview enabled cluster [apigroup:config.openshift.io] should mount given csi shared resource secret into the build pod for docker strategy builds [apigroup:image.openshift.io][apigroup:build.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-builds][Feature:Builds][volumes] csi build volumes within Tech Preview enabled cluster [apigroup:config.openshift.io] should mount given csi shared resource secret into the build pod for source strategy builds [apigroup:image.openshift.io][apigroup:build.openshift.io][apigroup:apps.openshift.io]": " [Suite:openshift/conformance/parallel]",
+	"[sig-builds][Feature:Builds][volumes] csi build volumes within Tech Preview enabled cluster [apigroup:config.openshift.io] should mount given csi shared resource secret into the build pod for source strategy builds [apigroup:image.openshift.io][apigroup:build.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-builds][Feature:Builds][volumes] csi build volumes within Tech Preview enabled cluster [apigroup:config.openshift.io] should mount given csi shared resource secret without resource refresh into the build pod for docker strategy builds [apigroup:image.openshift.io][apigroup:build.openshift.io][apigroup:apps.openshift.io]": " [Suite:openshift/conformance/parallel]",
+	"[sig-builds][Feature:Builds][volumes] csi build volumes within Tech Preview enabled cluster [apigroup:config.openshift.io] should mount given csi shared resource secret without resource refresh into the build pod for docker strategy builds [apigroup:image.openshift.io][apigroup:build.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
-	"[sig-builds][Feature:Builds][volumes] csi build volumes within Tech Preview enabled cluster [apigroup:config.openshift.io] should mount given csi shared resource secret without resource refresh into the build pod for source strategy builds [apigroup:image.openshift.io][apigroup:build.openshift.io][apigroup:apps.openshift.io]": " [Suite:openshift/conformance/parallel]",
+	"[sig-builds][Feature:Builds][volumes] csi build volumes within Tech Preview enabled cluster [apigroup:config.openshift.io] should mount given csi shared resource secret without resource refresh into the build pod for source strategy builds [apigroup:image.openshift.io][apigroup:build.openshift.io]": " [Suite:openshift/conformance/parallel]",
 
 	"[sig-builds][Feature:Builds][webhook] TestWebhook [apigroup:build.openshift.io][apigroup:image.openshift.io]": " [Suite:openshift/conformance/parallel]",
 

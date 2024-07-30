@@ -163,10 +163,10 @@
 // test/extended/testdata/builds/volumes/csi-without-rr-docker-buildconfig.yaml
 // test/extended/testdata/builds/volumes/csi-without-rr-s2i-buildconfig.yaml
 // test/extended/testdata/builds/volumes/docker-buildconfig.yaml
-// test/extended/testdata/builds/volumes/docker-deploymentconfig.yaml
+// test/extended/testdata/builds/volumes/docker-deployment.yaml
 // test/extended/testdata/builds/volumes/docker-imagestream.yaml
 // test/extended/testdata/builds/volumes/s2i-buildconfig.yaml
-// test/extended/testdata/builds/volumes/s2i-deploymentconfig.yaml
+// test/extended/testdata/builds/volumes/s2i-deployment.yaml
 // test/extended/testdata/builds/volumes/s2i-imagestream.yaml
 // test/extended/testdata/builds/volumes/secret.yaml
 // test/extended/testdata/builds/webhook/bitbucket/testdata/pushevent-not-master.json
@@ -22739,53 +22739,47 @@ func testExtendedTestdataBuildsVolumesDockerBuildconfigYaml() (*asset, error) {
 	return a, nil
 }
 
-var _testExtendedTestdataBuildsVolumesDockerDeploymentconfigYaml = []byte(`apiVersion: apps.openshift.io/v1
-kind: DeploymentConfig
+var _testExtendedTestdataBuildsVolumesDockerDeploymentYaml = []byte(`apiVersion: apps/v1
+kind: Deployment
 metadata:
   name: mydockertest
+  annotations:
+    image.openshift.io/triggers: "[{\"from\":{\"kind\":\"ImageStreamTag\",\"name\":\"mydockerstream:latest\"},\"fieldPath\": \"spec.template.spec.containers[0].image\"}]"
 spec:
   replicas: 1
   selector:
-    app: mydockertest
-    deploymentconfig: mydockertest
+    matchLabels:
+      app: mydockertest
+      deployment: mydockertest
   strategy:
-    type: Rolling
+    type: RollingUpdate
   template:
     metadata:
       labels:
         app: mydockertest
-        deploymentconfig: mydockertest
+        deployment: mydockertest
     spec:
       containers:
-      - image:
+      - image: " "
         imagePullPolicy: Always
         name: mydockertest
         terminationMessagePath: /dev/termination-log
       dnsPolicy: ClusterFirst
       restartPolicy: Always
       securityContext: {}
-  triggers:
-  - imageChangeParams:
-      automatic: true
-      containerNames:
-      - mydockertest
-      from:
-        kind: ImageStreamTag
-        name: mydockerstream:latest
-    type: ImageChange
-  - type: ConfigChange`)
+`)
 
-func testExtendedTestdataBuildsVolumesDockerDeploymentconfigYamlBytes() ([]byte, error) {
-	return _testExtendedTestdataBuildsVolumesDockerDeploymentconfigYaml, nil
+func testExtendedTestdataBuildsVolumesDockerDeploymentYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsVolumesDockerDeploymentYaml, nil
 }
 
-func testExtendedTestdataBuildsVolumesDockerDeploymentconfigYaml() (*asset, error) {
-	bytes, err := testExtendedTestdataBuildsVolumesDockerDeploymentconfigYamlBytes()
+func testExtendedTestdataBuildsVolumesDockerDeploymentYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsVolumesDockerDeploymentYamlBytes()
 	if err != nil {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "test/extended/testdata/builds/volumes/docker-deploymentconfig.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	info := bindataFileInfo{name: "test/extended/testdata/builds/volumes/docker-deployment.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -22874,53 +22868,47 @@ func testExtendedTestdataBuildsVolumesS2iBuildconfigYaml() (*asset, error) {
 	return a, nil
 }
 
-var _testExtendedTestdataBuildsVolumesS2iDeploymentconfigYaml = []byte(`apiVersion: apps.openshift.io/v1
-kind: DeploymentConfig
+var _testExtendedTestdataBuildsVolumesS2iDeploymentYaml = []byte(`apiVersion: apps/v1
+kind: Deployment
 metadata:
   name: mys2itest
+  annotations:
+    image.openshift.io/triggers: "[{\"from\":{\"kind\":\"ImageStreamTag\",\"name\":\"mys2istream:latest\"},\"fieldPath\": \"spec.template.spec.containers[0].image\"}]"
 spec:
   replicas: 1
   selector:
-    app: mys2itest
-    deploymentconfig: mys2itest
+    matchLabels:
+      app: mys2itest
+      deployment: mys2itest
   strategy:
-    type: Rolling
+    type: RollingUpdate
   template:
     metadata:
       labels:
         app: mys2itest
-        deploymentconfig: mys2itest
+        deployment: mys2itest
     spec:
       containers:
-      - image:
+      - image: " "
         imagePullPolicy: Always
         name: mys2itest
         terminationMessagePath: /dev/termination-log
       dnsPolicy: ClusterFirst
       restartPolicy: Always
       securityContext: {}
-  triggers:
-  - imageChangeParams:
-      automatic: true
-      containerNames:
-      - mys2itest
-      from:
-        kind: ImageStreamTag
-        name: mys2istream:latest
-    type: ImageChange
-  - type: ConfigChange`)
+`)
 
-func testExtendedTestdataBuildsVolumesS2iDeploymentconfigYamlBytes() ([]byte, error) {
-	return _testExtendedTestdataBuildsVolumesS2iDeploymentconfigYaml, nil
+func testExtendedTestdataBuildsVolumesS2iDeploymentYamlBytes() ([]byte, error) {
+	return _testExtendedTestdataBuildsVolumesS2iDeploymentYaml, nil
 }
 
-func testExtendedTestdataBuildsVolumesS2iDeploymentconfigYaml() (*asset, error) {
-	bytes, err := testExtendedTestdataBuildsVolumesS2iDeploymentconfigYamlBytes()
+func testExtendedTestdataBuildsVolumesS2iDeploymentYaml() (*asset, error) {
+	bytes, err := testExtendedTestdataBuildsVolumesS2iDeploymentYamlBytes()
 	if err != nil {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "test/extended/testdata/builds/volumes/s2i-deploymentconfig.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
+	info := bindataFileInfo{name: "test/extended/testdata/builds/volumes/s2i-deployment.yaml", size: 0, mode: os.FileMode(0), modTime: time.Unix(0, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -55570,10 +55558,10 @@ var _bindata = map[string]func() (*asset, error){
 	"test/extended/testdata/builds/volumes/csi-without-rr-docker-buildconfig.yaml":                           testExtendedTestdataBuildsVolumesCsiWithoutRrDockerBuildconfigYaml,
 	"test/extended/testdata/builds/volumes/csi-without-rr-s2i-buildconfig.yaml":                              testExtendedTestdataBuildsVolumesCsiWithoutRrS2iBuildconfigYaml,
 	"test/extended/testdata/builds/volumes/docker-buildconfig.yaml":                                          testExtendedTestdataBuildsVolumesDockerBuildconfigYaml,
-	"test/extended/testdata/builds/volumes/docker-deploymentconfig.yaml":                                     testExtendedTestdataBuildsVolumesDockerDeploymentconfigYaml,
+	"test/extended/testdata/builds/volumes/docker-deployment.yaml":                                           testExtendedTestdataBuildsVolumesDockerDeploymentYaml,
 	"test/extended/testdata/builds/volumes/docker-imagestream.yaml":                                          testExtendedTestdataBuildsVolumesDockerImagestreamYaml,
 	"test/extended/testdata/builds/volumes/s2i-buildconfig.yaml":                                             testExtendedTestdataBuildsVolumesS2iBuildconfigYaml,
-	"test/extended/testdata/builds/volumes/s2i-deploymentconfig.yaml":                                        testExtendedTestdataBuildsVolumesS2iDeploymentconfigYaml,
+	"test/extended/testdata/builds/volumes/s2i-deployment.yaml":                                              testExtendedTestdataBuildsVolumesS2iDeploymentYaml,
 	"test/extended/testdata/builds/volumes/s2i-imagestream.yaml":                                             testExtendedTestdataBuildsVolumesS2iImagestreamYaml,
 	"test/extended/testdata/builds/volumes/secret.yaml":                                                      testExtendedTestdataBuildsVolumesSecretYaml,
 	"test/extended/testdata/builds/webhook/bitbucket/testdata/pushevent-not-master.json":                     testExtendedTestdataBuildsWebhookBitbucketTestdataPusheventNotMasterJson,
@@ -56191,10 +56179,10 @@ var _bintree = &bintree{nil, map[string]*bintree{
 						"csi-without-rr-docker-buildconfig.yaml": {testExtendedTestdataBuildsVolumesCsiWithoutRrDockerBuildconfigYaml, map[string]*bintree{}},
 						"csi-without-rr-s2i-buildconfig.yaml":    {testExtendedTestdataBuildsVolumesCsiWithoutRrS2iBuildconfigYaml, map[string]*bintree{}},
 						"docker-buildconfig.yaml":                {testExtendedTestdataBuildsVolumesDockerBuildconfigYaml, map[string]*bintree{}},
-						"docker-deploymentconfig.yaml":           {testExtendedTestdataBuildsVolumesDockerDeploymentconfigYaml, map[string]*bintree{}},
+						"docker-deployment.yaml":                 {testExtendedTestdataBuildsVolumesDockerDeploymentYaml, map[string]*bintree{}},
 						"docker-imagestream.yaml":                {testExtendedTestdataBuildsVolumesDockerImagestreamYaml, map[string]*bintree{}},
 						"s2i-buildconfig.yaml":                   {testExtendedTestdataBuildsVolumesS2iBuildconfigYaml, map[string]*bintree{}},
-						"s2i-deploymentconfig.yaml":              {testExtendedTestdataBuildsVolumesS2iDeploymentconfigYaml, map[string]*bintree{}},
+						"s2i-deployment.yaml":                    {testExtendedTestdataBuildsVolumesS2iDeploymentYaml, map[string]*bintree{}},
 						"s2i-imagestream.yaml":                   {testExtendedTestdataBuildsVolumesS2iImagestreamYaml, map[string]*bintree{}},
 						"secret.yaml":                            {testExtendedTestdataBuildsVolumesSecretYaml, map[string]*bintree{}},
 					}},
