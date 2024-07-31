@@ -44921,22 +44921,23 @@ var _testExtendedTestdataIdlingEchoServerYaml = []byte(`apiVersion: v1
 kind: List
 metadata: {}
 items:
-- apiVersion: apps.openshift.io/v1
-  kind: DeploymentConfig
+- apiVersion: apps/v1
+  kind: Deployment
   metadata:
     name: idling-echo
   spec:
     replicas: 2
     selector:
-      app: idling-echo
-      deploymentconfig: idling-echo
+      matchLabels:
+        app: idling-echo
+        deployment: idling-echo
     strategy:
-      type: Rolling
+      type: RollingUpdate
     template:
       metadata:
         labels:
           app: idling-echo
-          deploymentconfig: idling-echo
+          deployment: idling-echo
       spec:
         containers:
         - image: registry.k8s.io/e2e-test-images/agnhost:2.47
