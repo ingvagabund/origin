@@ -1092,25 +1092,7 @@ func testAnnotationRestorationAfterDeletion(oc *exutil.CLI, ctx context.Context,
 
 	// Wait for the operator to restore the annotation.
 	g.By("waiting for operator to restore the inject-tls annotation")
-	err = wait.PollUntilContextTimeout(ctx, 5*time.Second, 5*time.Minute, true,
-		func(ctx context.Context) (bool, error) {
-			cm, err := oc.AdminKubeClient().CoreV1().ConfigMaps(t.configMapNamespace).Get(ctx, t.configMapName, metav1.GetOptions{})
-			if err != nil {
-				e2e.Logf("  poll: error fetching ConfigMap: %v", err)
-				return false, nil
-			}
-
-			val, found := cm.Annotations[injectTLSAnnotation]
-			if found && val == "true" {
-				e2e.Logf("  poll: annotation restored! inject-tls=%s", val)
-				return true, nil
-			}
-			e2e.Logf("  poll: annotation not yet restored (found=%v, val=%s)", found, val)
-			return false, nil
-		},
-	)
-	o.Expect(err).NotTo(o.HaveOccurred(),
-		fmt.Sprintf("%s annotation was not restored on ConfigMap %s/%s within timeout", injectTLSAnnotation, t.configMapNamespace, t.configMapName))
+	waitForAnnotationRestoration(oc, ctx, t.configMapNamespace, t.configMapName)
 
 	e2e.Logf("PASS: %s annotation was restored after deletion on ConfigMap %s/%s", injectTLSAnnotation, t.configMapNamespace, t.configMapName)
 }
@@ -1135,25 +1117,7 @@ func testAnnotationRestorationWhenFalse(oc *exutil.CLI, ctx context.Context, t t
 
 	// Wait for the operator to restore the annotation to "true".
 	g.By("waiting for operator to restore the inject-tls annotation to 'true'")
-	err = wait.PollUntilContextTimeout(ctx, 5*time.Second, 5*time.Minute, true,
-		func(ctx context.Context) (bool, error) {
-			cm, err := oc.AdminKubeClient().CoreV1().ConfigMaps(t.configMapNamespace).Get(ctx, t.configMapName, metav1.GetOptions{})
-			if err != nil {
-				e2e.Logf("  poll: error fetching ConfigMap: %v", err)
-				return false, nil
-			}
-
-			val, found := cm.Annotations[injectTLSAnnotation]
-			if found && val == "true" {
-				e2e.Logf("  poll: annotation restored to 'true'!")
-				return true, nil
-			}
-			e2e.Logf("  poll: annotation not yet restored (found=%v, val=%s)", found, val)
-			return false, nil
-		},
-	)
-	o.Expect(err).NotTo(o.HaveOccurred(),
-		fmt.Sprintf("%s annotation was not restored to 'true' on ConfigMap %s/%s within timeout", injectTLSAnnotation, t.configMapNamespace, t.configMapName))
+	waitForAnnotationRestoration(oc, ctx, t.configMapNamespace, t.configMapName)
 
 	e2e.Logf("PASS: %s annotation was restored to 'true' after being set to 'false' on ConfigMap %s/%s", injectTLSAnnotation, t.configMapNamespace, t.configMapName)
 }
@@ -1448,6 +1412,30 @@ func updateConfigMap(oc *exutil.CLI, ctx context.Context, namespace, name string
 	_, err := oc.AdminKubeClient().CoreV1().ConfigMaps(namespace).Update(ctx, cm, metav1.UpdateOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred(),
 		fmt.Sprintf("failed to update ConfigMap %s/%s to %s", namespace, name, action))
+}
+
+// waitForAnnotationRestoration waits for the inject-tls annotation to be restored to "true".
+// If the annotation is not restored within the timeout, the test fails.
+func waitForAnnotationRestoration(oc *exutil.CLI, ctx context.Context, namespace, name string) {
+	err := wait.PollUntilContextTimeout(ctx, 5*time.Second, 5*time.Minute, true,
+		func(ctx context.Context) (bool, error) {
+			cm, err := oc.AdminKubeClient().CoreV1().ConfigMaps(namespace).Get(ctx, name, metav1.GetOptions{})
+			if err != nil {
+				e2e.Logf("  poll: error fetching ConfigMap: %v", err)
+				return false, nil
+			}
+
+			val, found := cm.Annotations[injectTLSAnnotation]
+			if found && val == "true" {
+				e2e.Logf("  poll: annotation restored! inject-tls=%s", val)
+				return true, nil
+			}
+			e2e.Logf("  poll: annotation not yet restored (found=%v, val=%s)", found, val)
+			return false, nil
+		},
+	)
+	o.Expect(err).NotTo(o.HaveOccurred(),
+		fmt.Sprintf("%s annotation was not restored on ConfigMap %s/%s within timeout", injectTLSAnnotation, namespace, name))
 }
 
 // verifyObservedConfigAfterSwitch checks that every target with an operator
