@@ -81,7 +81,6 @@ type tlsTarget struct {
 	// configMapNamespace is the namespace where the ConfigMap is located.
 	configMapNamespace string
 	// configMapKey is the key within the ConfigMap that contains the TLS config
-	// (typically "config.yaml"). If empty, defaults to "config.yaml".
 	configMapKey string
 	// controlPlane indicates this target runs in the control plane. On
 	// HyperShift (external control plane topology), these workloads run on the
@@ -137,7 +136,7 @@ var targets = []tlsTarget{
 		operatorConfigName:  "",
 		clusterOperatorName: "image-registry",
 		configMapName:       "",
-		configMapKey:        "",
+		configMapKey:        "config.yaml",
 		controlPlane:        true,
 	},
 	// openshift-controller-manager propagates TLS config via ConfigMap
@@ -274,7 +273,7 @@ var targets = []tlsTarget{
 		// CVO does not use a ConfigMap with inject-tls annotation.
 		// It reads TLS config directly from the cluster config.
 		configMapName: "",
-		configMapKey:  "",
+		configMapKey:  "config.yaml",
 	},
 	// etcd is a static pod managed by cluster-etcd-operator.
 	// PR 1556 (cluster-etcd-operator) adds TLS security profile propagation.
@@ -886,11 +885,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 				e2e.Logf("SKIP: ConfigMap %s/%s not found: %v", t.configMapNamespace, t.configMapName, err)
 				continue
 			}
-			configKey := t.configMapKey
-			if configKey == "" {
-				configKey = "config.yaml"
-			}
-			configData := cm.Data[configKey]
+			configData := cm.Data[t.configMapKey]
 			o.Expect(cm.Annotations).To(o.HaveKey(injectTLSAnnotation),
 				fmt.Sprintf("ConfigMap %s/%s is missing %s annotation", t.configMapNamespace, t.configMapName, injectTLSAnnotation))
 			o.Expect(configData).To(o.ContainSubstring("VersionTLS12"),
@@ -1017,22 +1012,16 @@ func testConfigMapTLSInjection(oc *exutil.CLI, ctx context.Context, t tlsTarget)
 		fmt.Sprintf("ConfigMap %s/%s has inject-tls annotation but value is not 'true': %s", t.configMapNamespace, t.configMapName, annotationValue))
 	e2e.Logf("ConfigMap %s/%s has %s=true annotation", t.configMapNamespace, t.configMapName, injectTLSAnnotation)
 
-	// Get the config key (defaults to "config.yaml" if not specified).
-	configKey := t.configMapKey
-	if configKey == "" {
-		configKey = "config.yaml"
-	}
-
 	// Extract the config data from the ConfigMap.
-	g.By(fmt.Sprintf("extracting %s from ConfigMap data", configKey))
-	configData, found := cm.Data[configKey]
+	g.By(fmt.Sprintf("extracting %s from ConfigMap data", t.configMapKey))
+	configData, found := cm.Data[t.configMapKey]
 	o.Expect(found).To(o.BeTrue(),
-		fmt.Sprintf("ConfigMap %s/%s is missing %s key", t.configMapNamespace, t.configMapName, configKey))
+		fmt.Sprintf("ConfigMap %s/%s is missing %s key", t.configMapNamespace, t.configMapName, t.configMapKey))
 	o.Expect(configData).NotTo(o.BeEmpty(),
-		fmt.Sprintf("ConfigMap %s/%s has empty %s", t.configMapNamespace, t.configMapName, configKey))
+		fmt.Sprintf("ConfigMap %s/%s has empty %s", t.configMapNamespace, t.configMapName, t.configMapKey))
 
 	// Log the servingInfo section for debugging.
-	e2e.Logf("ConfigMap %s/%s %s content (servingInfo section):", t.configMapNamespace, t.configMapName, configKey)
+	e2e.Logf("ConfigMap %s/%s %s content (servingInfo section):", t.configMapNamespace, t.configMapName, t.configMapKey)
 	for _, line := range strings.Split(configData, "\n") {
 		if strings.Contains(line, "servingInfo") ||
 			strings.Contains(line, "minTLSVersion") ||
@@ -1178,16 +1167,12 @@ func testAnnotationRestorationWhenFalse(oc *exutil.CLI, ctx context.Context, t t
 func testServingInfoRestorationAfterRemoval(oc *exutil.CLI, ctx context.Context, t tlsTarget) {
 	verifyNamespaceExists(oc, ctx, t.configMapNamespace)
 
-	configKey := t.configMapKey
-	if configKey == "" {
-		configKey = "config.yaml"
-	}
 
 	// Get the original ConfigMap and verify servingInfo exists.
 	cm := getConfigMap(oc, ctx, t.configMapNamespace, t.configMapName)
 
 	// Verify servingInfo exists before we remove it.
-	configData := cm.Data[configKey]
+	configData := cm.Data[t.configMapKey]
 	if !strings.Contains(configData, "servingInfo") {
 		g.Skip(fmt.Sprintf("ConfigMap %s/%s does not have servingInfo, skipping removal test", t.configMapNamespace, t.configMapName))
 	}
@@ -1227,7 +1212,7 @@ func testServingInfoRestorationAfterRemoval(oc *exutil.CLI, ctx context.Context,
 		}
 		newLines = append(newLines, line)
 	}
-	cm.Data[configKey] = strings.Join(newLines, "\n")
+	cm.Data[t.configMapKey] = strings.Join(newLines, "\n")
 
 	_, err = oc.AdminKubeClient().CoreV1().ConfigMaps(t.configMapNamespace).Update(ctx, cm, metav1.UpdateOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred(),
@@ -1244,7 +1229,7 @@ func testServingInfoRestorationAfterRemoval(oc *exutil.CLI, ctx context.Context,
 				return false, nil
 			}
 
-			configData := cm.Data[configKey]
+			configData := cm.Data[t.configMapKey]
 			if strings.Contains(configData, "servingInfo") && strings.Contains(configData, "minTLSVersion") {
 				e2e.Logf("  poll: servingInfo restored!")
 				return true, nil
@@ -1259,7 +1244,7 @@ func testServingInfoRestorationAfterRemoval(oc *exutil.CLI, ctx context.Context,
 	// Verify the restored config matches expected TLS version.
 	cm, err = oc.AdminKubeClient().CoreV1().ConfigMaps(t.configMapNamespace).Get(ctx, t.configMapName, metav1.GetOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred())
-	configData = cm.Data[configKey]
+	configData = cm.Data[t.configMapKey]
 	o.Expect(configData).To(o.ContainSubstring("minTLSVersion"),
 		"restored servingInfo should contain minTLSVersion")
 
@@ -1271,10 +1256,6 @@ func testServingInfoRestorationAfterRemoval(oc *exutil.CLI, ctx context.Context,
 func testServingInfoRestorationAfterModification(oc *exutil.CLI, ctx context.Context, t tlsTarget) {
 	verifyNamespaceExists(oc, ctx, t.configMapNamespace)
 
-	configKey := t.configMapKey
-	if configKey == "" {
-		configKey = "config.yaml"
-	}
 
 	// Get the expected TLS version from the cluster profile.
 	expectedMinVersion := getExpectedMinTLSVersion(oc, ctx)
@@ -1284,7 +1265,7 @@ func testServingInfoRestorationAfterModification(oc *exutil.CLI, ctx context.Con
 	cm := getConfigMap(oc, ctx, t.configMapNamespace, t.configMapName)
 
 	// Verify servingInfo exists.
-	configData := cm.Data[configKey]
+	configData := cm.Data[t.configMapKey]
 	if !strings.Contains(configData, "minTLSVersion") {
 		g.Skip(fmt.Sprintf("ConfigMap %s/%s does not have minTLSVersion, skipping modification test", t.configMapNamespace, t.configMapName))
 	}
@@ -1308,7 +1289,7 @@ func testServingInfoRestorationAfterModification(oc *exutil.CLI, ctx context.Con
 			newLines = append(newLines, line)
 		}
 	}
-	cm.Data[configKey] = strings.Join(newLines, "\n")
+	cm.Data[t.configMapKey] = strings.Join(newLines, "\n")
 
 	_, err = oc.AdminKubeClient().CoreV1().ConfigMaps(t.configMapNamespace).Update(ctx, cm, metav1.UpdateOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred(),
@@ -1325,7 +1306,7 @@ func testServingInfoRestorationAfterModification(oc *exutil.CLI, ctx context.Con
 				return false, nil
 			}
 
-			configData := cm.Data[configKey]
+			configData := cm.Data[t.configMapKey]
 			// Check if the wrong value is gone and expected value is present.
 			if !strings.Contains(configData, wrongValue) && strings.Contains(configData, expectedMinVersion) {
 				e2e.Logf("  poll: minTLSVersion restored to %s!", expectedMinVersion)
@@ -1526,11 +1507,7 @@ func verifyConfigMapsForTargets(oc *exutil.CLI, ctx context.Context, expectedVer
 			e2e.Logf("SKIP: ConfigMap %s/%s not found: %v", t.configMapNamespace, t.configMapName, err)
 			continue
 		}
-		configKey := t.configMapKey
-		if configKey == "" {
-			configKey = "config.yaml"
-		}
-		configData := cm.Data[configKey]
+		configData := cm.Data[t.configMapKey]
 		o.Expect(cm.Annotations).To(o.HaveKey(injectTLSAnnotation),
 			fmt.Sprintf("ConfigMap %s/%s is missing %s annotation", t.configMapNamespace, t.configMapName, injectTLSAnnotation))
 		o.Expect(configData).To(o.ContainSubstring(expectedVersion),
