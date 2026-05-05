@@ -1015,10 +1015,7 @@ func testConfigMapTLSInjection(oc *exutil.CLI, ctx context.Context, t tlsTarget)
 
 	verifyNamespaceExists(oc, ctx, cmNamespace)
 
-	g.By(fmt.Sprintf("getting ConfigMap %s/%s", cmNamespace, t.configMapName))
-	cm, err := oc.AdminKubeClient().CoreV1().ConfigMaps(cmNamespace).Get(ctx, t.configMapName, metav1.GetOptions{})
-	o.Expect(err).NotTo(o.HaveOccurred(),
-		fmt.Sprintf("failed to get ConfigMap %s/%s", cmNamespace, t.configMapName))
+	cm := getConfigMap(oc, ctx, cmNamespace, t.configMapName)
 
 	g.By("verifying " + injectTLSAnnotation + " annotation is present")
 	annotationValue, found := cm.Annotations[injectTLSAnnotation]
@@ -1105,10 +1102,7 @@ func testAnnotationRestorationAfterDeletion(oc *exutil.CLI, ctx context.Context,
 	verifyNamespaceExists(oc, ctx, cmNamespace)
 
 	// Get the original ConfigMap and verify annotation exists.
-	g.By(fmt.Sprintf("getting ConfigMap %s/%s", cmNamespace, t.configMapName))
-	cm, err := oc.AdminKubeClient().CoreV1().ConfigMaps(cmNamespace).Get(ctx, t.configMapName, metav1.GetOptions{})
-	o.Expect(err).NotTo(o.HaveOccurred(),
-		fmt.Sprintf("failed to get ConfigMap %s/%s", cmNamespace, t.configMapName))
+	cm := getConfigMap(oc, ctx, cmNamespace, t.configMapName)
 
 	_, found := cm.Annotations[injectTLSAnnotation]
 	o.Expect(found).To(o.BeTrue(),
@@ -1158,10 +1152,7 @@ func testAnnotationRestorationWhenFalse(oc *exutil.CLI, ctx context.Context, t t
 	verifyNamespaceExists(oc, ctx, cmNamespace)
 
 	// Get the original ConfigMap.
-	g.By(fmt.Sprintf("getting ConfigMap %s/%s", cmNamespace, t.configMapName))
-	cm, err := oc.AdminKubeClient().CoreV1().ConfigMaps(cmNamespace).Get(ctx, t.configMapName, metav1.GetOptions{})
-	o.Expect(err).NotTo(o.HaveOccurred(),
-		fmt.Sprintf("failed to get ConfigMap %s/%s", cmNamespace, t.configMapName))
+	cm := getConfigMap(oc, ctx, cmNamespace, t.configMapName)
 
 	_, annotationFound := cm.Annotations[injectTLSAnnotation]
 	o.Expect(annotationFound).To(o.BeTrue(),
@@ -1216,10 +1207,7 @@ func testServingInfoRestorationAfterRemoval(oc *exutil.CLI, ctx context.Context,
 	}
 
 	// Get the original ConfigMap and verify servingInfo exists.
-	g.By(fmt.Sprintf("getting ConfigMap %s/%s", cmNamespace, t.configMapName))
-	cm, err := oc.AdminKubeClient().CoreV1().ConfigMaps(cmNamespace).Get(ctx, t.configMapName, metav1.GetOptions{})
-	o.Expect(err).NotTo(o.HaveOccurred(),
-		fmt.Sprintf("failed to get ConfigMap %s/%s", cmNamespace, t.configMapName))
+	cm := getConfigMap(oc, ctx, cmNamespace, t.configMapName)
 
 	// Verify servingInfo exists before we remove it.
 	configData := cm.Data[configKey]
@@ -1321,10 +1309,7 @@ func testServingInfoRestorationAfterModification(oc *exutil.CLI, ctx context.Con
 	e2e.Logf("Expected minTLSVersion from cluster profile: %s", expectedMinVersion)
 
 	// Get the original ConfigMap.
-	g.By(fmt.Sprintf("getting ConfigMap %s/%s", cmNamespace, t.configMapName))
-	cm, err := oc.AdminKubeClient().CoreV1().ConfigMaps(cmNamespace).Get(ctx, t.configMapName, metav1.GetOptions{})
-	o.Expect(err).NotTo(o.HaveOccurred(),
-		fmt.Sprintf("failed to get ConfigMap %s/%s", cmNamespace, t.configMapName))
+	cm := getConfigMap(oc, ctx, cmNamespace, t.configMapName)
 
 	// Verify servingInfo exists.
 	configData := cm.Data[configKey]
@@ -1500,6 +1485,16 @@ func verifyNamespaceExists(oc *exutil.CLI, ctx context.Context, namespace string
 		g.Skip(fmt.Sprintf("Namespace %s does not exist in this cluster", namespace))
 	}
 	o.Expect(err).NotTo(o.HaveOccurred(), fmt.Sprintf("unexpected error checking namespace %s", namespace))
+}
+
+// getConfigMap retrieves a ConfigMap from the specified namespace.
+// If the ConfigMap cannot be retrieved, the test fails.
+func getConfigMap(oc *exutil.CLI, ctx context.Context, namespace, name string) *corev1.ConfigMap {
+	g.By(fmt.Sprintf("getting ConfigMap %s/%s", namespace, name))
+	cm, err := oc.AdminKubeClient().CoreV1().ConfigMaps(namespace).Get(ctx, name, metav1.GetOptions{})
+	o.Expect(err).NotTo(o.HaveOccurred(),
+		fmt.Sprintf("failed to get ConfigMap %s/%s", namespace, name))
+	return cm
 }
 
 // verifyObservedConfigAfterSwitch checks that every target with an operator
