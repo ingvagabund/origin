@@ -1080,9 +1080,7 @@ func testAnnotationRestorationAfterDeletion(oc *exutil.CLI, ctx context.Context,
 	// Get the original ConfigMap and verify annotation exists.
 	cm := getConfigMap(oc, ctx, t.configMapNamespace, t.configMapName)
 
-	_, found := cm.Annotations[injectTLSAnnotation]
-	o.Expect(found).To(o.BeTrue(),
-		fmt.Sprintf("ConfigMap %s/%s is missing %s annotation", t.configMapNamespace, t.configMapName, injectTLSAnnotation))
+	requireAnnotation(cm, t.configMapNamespace, t.configMapName)
 
 	// Delete the annotation.
 	g.By("deleting " + injectTLSAnnotation + " annotation")
@@ -1105,9 +1103,7 @@ func testAnnotationRestorationWhenFalse(oc *exutil.CLI, ctx context.Context, t t
 	// Get the original ConfigMap.
 	cm := getConfigMap(oc, ctx, t.configMapNamespace, t.configMapName)
 
-	_, annotationFound := cm.Annotations[injectTLSAnnotation]
-	o.Expect(annotationFound).To(o.BeTrue(),
-		fmt.Sprintf("ConfigMap %s/%s is missing %s annotation", t.configMapNamespace, t.configMapName, injectTLSAnnotation))
+	requireAnnotation(cm, t.configMapNamespace, t.configMapName)
 
 	// Set the annotation to "false".
 	g.By("setting " + injectTLSAnnotation + " annotation to 'false'")
@@ -1412,6 +1408,14 @@ func updateConfigMap(oc *exutil.CLI, ctx context.Context, namespace, name string
 	_, err := oc.AdminKubeClient().CoreV1().ConfigMaps(namespace).Update(ctx, cm, metav1.UpdateOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred(),
 		fmt.Sprintf("failed to update ConfigMap %s/%s to %s", namespace, name, action))
+}
+
+// requireAnnotation verifies that the inject-tls annotation is present on a ConfigMap.
+// If the annotation is missing, the test fails.
+func requireAnnotation(cm *corev1.ConfigMap, namespace, name string) {
+	_, found := cm.Annotations[injectTLSAnnotation]
+	o.Expect(found).To(o.BeTrue(),
+		fmt.Sprintf("ConfigMap %s/%s is missing %s annotation", namespace, name, injectTLSAnnotation))
 }
 
 // waitForAnnotationRestoration waits for the inject-tls annotation to be restored to "true".
