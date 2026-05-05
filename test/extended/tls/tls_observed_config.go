@@ -1087,9 +1087,7 @@ func testAnnotationRestorationAfterDeletion(oc *exutil.CLI, ctx context.Context,
 	// Delete the annotation.
 	g.By("deleting " + injectTLSAnnotation + " annotation")
 	delete(cm.Annotations, injectTLSAnnotation)
-	_, err = oc.AdminKubeClient().CoreV1().ConfigMaps(t.configMapNamespace).Update(ctx, cm, metav1.UpdateOptions{})
-	o.Expect(err).NotTo(o.HaveOccurred(),
-		fmt.Sprintf("failed to update ConfigMap %s/%s to delete annotation", t.configMapNamespace, t.configMapName))
+	updateConfigMap(oc, ctx, t.configMapNamespace, t.configMapName, cm, "delete annotation")
 	e2e.Logf("Deleted inject-tls annotation from ConfigMap %s/%s", t.configMapNamespace, t.configMapName)
 
 	// Wait for the operator to restore the annotation.
@@ -1132,9 +1130,7 @@ func testAnnotationRestorationWhenFalse(oc *exutil.CLI, ctx context.Context, t t
 	// Set the annotation to "false".
 	g.By("setting " + injectTLSAnnotation + " annotation to 'false'")
 	cm.Annotations[injectTLSAnnotation] = "false"
-	_, err = oc.AdminKubeClient().CoreV1().ConfigMaps(t.configMapNamespace).Update(ctx, cm, metav1.UpdateOptions{})
-	o.Expect(err).NotTo(o.HaveOccurred(),
-		fmt.Sprintf("failed to update ConfigMap %s/%s to set annotation to false", t.configMapNamespace, t.configMapName))
+	updateConfigMap(oc, ctx, t.configMapNamespace, t.configMapName, cm, "set annotation to false")
 	e2e.Logf("Set inject-tls annotation to 'false' on ConfigMap %s/%s", t.configMapNamespace, t.configMapName)
 
 	// Wait for the operator to restore the annotation to "true".
@@ -1214,9 +1210,7 @@ func testServingInfoRestorationAfterRemoval(oc *exutil.CLI, ctx context.Context,
 	}
 	cm.Data[t.configMapKey] = strings.Join(newLines, "\n")
 
-	_, err = oc.AdminKubeClient().CoreV1().ConfigMaps(t.configMapNamespace).Update(ctx, cm, metav1.UpdateOptions{})
-	o.Expect(err).NotTo(o.HaveOccurred(),
-		fmt.Sprintf("failed to update ConfigMap %s/%s to remove servingInfo", t.configMapNamespace, t.configMapName))
+	updateConfigMap(oc, ctx, t.configMapNamespace, t.configMapName, cm, "remove servingInfo")
 	e2e.Logf("Removed servingInfo from ConfigMap %s/%s", t.configMapNamespace, t.configMapName)
 
 	// Wait for the operator to restore servingInfo.
@@ -1291,9 +1285,7 @@ func testServingInfoRestorationAfterModification(oc *exutil.CLI, ctx context.Con
 	}
 	cm.Data[t.configMapKey] = strings.Join(newLines, "\n")
 
-	_, err = oc.AdminKubeClient().CoreV1().ConfigMaps(t.configMapNamespace).Update(ctx, cm, metav1.UpdateOptions{})
-	o.Expect(err).NotTo(o.HaveOccurred(),
-		fmt.Sprintf("failed to update ConfigMap %s/%s to modify minTLSVersion", t.configMapNamespace, t.configMapName))
+	updateConfigMap(oc, ctx, t.configMapNamespace, t.configMapName, cm, "modify minTLSVersion")
 	e2e.Logf("Modified minTLSVersion to '%s' on ConfigMap %s/%s", wrongValue, t.configMapNamespace, t.configMapName)
 
 	// Wait for the operator to restore correct minTLSVersion.
@@ -1448,6 +1440,14 @@ func getConfigMap(oc *exutil.CLI, ctx context.Context, namespace, name string) *
 	o.Expect(err).NotTo(o.HaveOccurred(),
 		fmt.Sprintf("failed to get ConfigMap %s/%s", namespace, name))
 	return cm
+}
+
+// updateConfigMap updates a ConfigMap in the specified namespace.
+// If the update fails, the test fails with a message describing the action.
+func updateConfigMap(oc *exutil.CLI, ctx context.Context, namespace, name string, cm *corev1.ConfigMap, action string) {
+	_, err := oc.AdminKubeClient().CoreV1().ConfigMaps(namespace).Update(ctx, cm, metav1.UpdateOptions{})
+	o.Expect(err).NotTo(o.HaveOccurred(),
+		fmt.Sprintf("failed to update ConfigMap %s/%s to %s", namespace, name, action))
 }
 
 // verifyObservedConfigAfterSwitch checks that every target with an operator
