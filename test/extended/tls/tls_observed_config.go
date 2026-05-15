@@ -42,6 +42,36 @@ const (
 	injectTLSAnnotation = "config.openshift.io/inject-tls"
 )
 
+// operatorObservedConfigTarget identifies an operator whose spec.observedConfig
+// must contain servingInfo with minTLSVersion and cipherSuites.
+type operatorObservedConfigTarget struct {
+	namespace  string
+	configGVR  schema.GroupVersionResource
+	configName string
+}
+
+// buildGVR creates a GroupVersionResource for an operator config resource.
+func buildGVR(group, version, resource string) schema.GroupVersionResource {
+	return schema.GroupVersionResource{
+		Group:    group,
+		Version:  version,
+		Resource: resource,
+	}
+}
+
+var operatorObservedConfigGuestTargets = []operatorObservedConfigTarget{
+	{namespace: "openshift-image-registry", configGVR: buildGVR("imageregistry.operator.openshift.io", "v1", "configs"), configName: "cluster"},
+}
+
+var operatorObservedConfigTargets = []operatorObservedConfigTarget{
+	{namespace: "openshift-controller-manager", configGVR: buildGVR("operator.openshift.io", "v1", "openshiftcontrollermanagers"), configName: "cluster"},
+	{namespace: "openshift-kube-apiserver", configGVR: buildGVR("operator.openshift.io", "v1", "kubeapiservers"), configName: "cluster"},
+	{namespace: "openshift-apiserver", configGVR: buildGVR("operator.openshift.io", "v1", "openshiftapiservers"), configName: "cluster"},
+	{namespace: "openshift-etcd", configGVR: buildGVR("operator.openshift.io", "v1", "etcds"), configName: "cluster"},
+	{namespace: "openshift-kube-controller-manager", configGVR: buildGVR("operator.openshift.io", "v1", "kubecontrollermanagers"), configName: "cluster"},
+	{namespace: "openshift-kube-scheduler", configGVR: buildGVR("operator.openshift.io", "v1", "kubeschedulers"), configName: "cluster"},
+}
+
 // tlsTarget describes a namespace/service that must honor the cluster APIServer
 // TLS profile.  Each target gets its own Ginkgo It block so failures are
 // reported per-namespace, following the same pattern as the ROFS tests.
@@ -391,17 +421,13 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Suite
 	})
 
 	// ── Per-namespace ObservedConfig verification ───────────────────────
-	for _, target := range targets {
+	for _, target := range operatorObservedConfigTargets {
 		target := target
-		if target.operatorConfigGVR.Resource == "" || target.operatorConfigName == "" {
-			continue
-		}
-
 		g.It(fmt.Sprintf("should populate ObservedConfig with TLS settings - %s", target.namespace), func() {
 			if isHyperShiftCluster && target.controlPlane {
 				g.Skip(fmt.Sprintf("Skipping control-plane target %s on HyperShift (runs on management cluster)", target.namespace))
 			}
-			testObservedConfig(oc, ctx, target)
+			testOperatorObservedConfig(oc, ctx, target)
 		})
 	}
 
@@ -573,7 +599,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 			waitForGuestOperatorsAfterTLSChange(oc, configChangeCtx, "Modern")
 
 			g.By("verifying guest-side ObservedConfig reflects Modern profile")
-			verifyObservedConfigForTargets(oc, configChangeCtx, "VersionTLS13", "Modern", guestTargets)
+			verifyObservedConfigForTargets(oc, configChangeCtx, "VersionTLS13", "Modern", operatorObservedConfigGuestTargets)
 			g.By("verifying guest-side ConfigMaps reflect Modern profile")
 			verifyConfigMapsForTargets(oc, configChangeCtx, "VersionTLS13", "Modern", guestTargets)
 			g.By("verifying HCP ConfigMaps reflect Modern profile")
@@ -786,7 +812,7 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 			waitForGuestOperatorsAfterTLSChange(oc, configChangeCtx, "Custom")
 
 			g.By("verifying guest-side ObservedConfig reflects Custom profile")
-			verifyObservedConfigForTargets(oc, configChangeCtx, "VersionTLS12", "Custom", guestTargets)
+			verifyObservedConfigForTargets(oc, configChangeCtx, "VersionTLS12", "Custom", operatorObservedConfigGuestTargets)
 			g.By("verifying guest-side ConfigMaps reflect Custom profile")
 			verifyConfigMapsForTargets(oc, configChangeCtx, "VersionTLS12", "Custom", guestTargets)
 			g.By("verifying HCP ConfigMaps reflect Custom profile")
@@ -937,20 +963,20 @@ var _ = g.Describe("[sig-api-machinery][Feature:TLSObservedConfig][Serial][Disru
 
 // ─── Test implementations ──────────────────────────────────────────────────
 
-// testObservedConfig verifies that the operator's ObservedConfig contains
+// testOperatorObservedConfig verifies that the operator's ObservedConfig contains
 // a properly populated servingInfo with minTLSVersion and cipherSuites.
 // This validates that the config observer controller (from library-go) is
 // correctly watching the APIServer resource and writing the TLS config
 // into the operator's ObservedConfig.
-func testObservedConfig(oc *exutil.CLI, ctx context.Context, t tlsTarget) {
+func testOperatorObservedConfig(oc *exutil.CLI, ctx context.Context, target operatorObservedConfigTarget) {
 	g.By(fmt.Sprintf("getting operator config %s/%s via dynamic client",
-		t.operatorConfigGVR.Resource, t.operatorConfigName))
+		target.configGVR.Resource, target.configName))
 
 	dynClient := oc.AdminDynamicClient()
-	resource, err := dynClient.Resource(t.operatorConfigGVR).Get(ctx, t.operatorConfigName, metav1.GetOptions{})
+	resource, err := dynClient.Resource(target.configGVR).Get(ctx, target.configName, metav1.GetOptions{})
 	o.Expect(err).NotTo(o.HaveOccurred(),
 		fmt.Sprintf("failed to get operator config %s/%s",
-			t.operatorConfigGVR.Resource, t.operatorConfigName))
+			target.configGVR.Resource, target.configName))
 
 	// Extract spec.observedConfig from the unstructured resource.
 	observedConfigRaw, found, err := unstructured.NestedMap(resource.Object, "spec", "observedConfig")
@@ -991,7 +1017,7 @@ func testObservedConfig(oc *exutil.CLI, ctx context.Context, t tlsTarget) {
 		fmt.Sprintf("ObservedConfig minTLSVersion=%s does not match cluster profile=%s",
 			minTLSVersion, expectedMinVersion))
 	e2e.Logf("PASS: ObservedConfig for %s/%s matches cluster APIServer TLS profile",
-		t.operatorConfigGVR.Resource, t.operatorConfigName)
+		target.configGVR.Resource, target.configName)
 }
 
 // validateNamespace checks that the namespace exists, skipping the test if not.
@@ -1451,38 +1477,35 @@ func testWireLevelTLS(oc *exutil.CLI, ctx context.Context, t tlsTarget) {
 // config has its ObservedConfig servingInfo.minTLSVersion matching the
 // expected version after a profile switch.
 func verifyObservedConfigAfterSwitch(oc *exutil.CLI, ctx context.Context, expectedVersion, profileLabel string) {
-	verifyObservedConfigForTargets(oc, ctx, expectedVersion, profileLabel, targets)
+	verifyObservedConfigForTargets(oc, ctx, expectedVersion, profileLabel, operatorObservedConfigTargets)
 }
 
 // verifyObservedConfigForTargets checks a specific list of targets for
 // ObservedConfig correctness after a TLS profile switch.
-func verifyObservedConfigForTargets(oc *exutil.CLI, ctx context.Context, expectedVersion, profileLabel string, targetList []tlsTarget) {
+func verifyObservedConfigForTargets(oc *exutil.CLI, ctx context.Context, expectedVersion, profileLabel string, targetList []operatorObservedConfigTarget) {
 	dynClient := oc.AdminDynamicClient()
-	for _, t := range targetList {
-		if t.operatorConfigGVR.Resource == "" || t.operatorConfigName == "" {
-			continue
-		}
-		resource, err := dynClient.Resource(t.operatorConfigGVR).Get(ctx, t.operatorConfigName, metav1.GetOptions{})
+	for _, target := range targetList {
+		resource, err := dynClient.Resource(target.configGVR).Get(ctx, target.configName, metav1.GetOptions{})
 		o.Expect(err).NotTo(o.HaveOccurred(),
 			fmt.Sprintf("failed to get operator config %s/%s after %s switch",
-				t.operatorConfigGVR.Resource, t.operatorConfigName, profileLabel))
+				target.configGVR.Resource, target.configName, profileLabel))
 
 		observedConfigRaw, found, err := unstructured.NestedMap(resource.Object, "spec", "observedConfig")
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(found).To(o.BeTrue(),
 			fmt.Sprintf("expected spec.observedConfig in %s/%s after %s switch",
-				t.operatorConfigGVR.Resource, t.operatorConfigName, profileLabel))
+				target.configGVR.Resource, target.configName, profileLabel))
 
 		minTLSVersion, found, err := unstructured.NestedString(observedConfigRaw, "servingInfo", "minTLSVersion")
 		o.Expect(err).NotTo(o.HaveOccurred())
 		o.Expect(found).To(o.BeTrue(),
 			fmt.Sprintf("expected servingInfo.minTLSVersion in ObservedConfig of %s/%s after %s switch",
-				t.operatorConfigGVR.Resource, t.operatorConfigName, profileLabel))
+				target.configGVR.Resource, target.configName, profileLabel))
 		o.Expect(minTLSVersion).To(o.Equal(expectedVersion),
 			fmt.Sprintf("ObservedConfig %s/%s: expected minTLSVersion=%s after %s switch, got %s",
-				t.operatorConfigGVR.Resource, t.operatorConfigName, expectedVersion, profileLabel, minTLSVersion))
+				target.configGVR.Resource, target.configName, expectedVersion, profileLabel, minTLSVersion))
 		e2e.Logf("PASS: ObservedConfig %s/%s has minTLSVersion=%s after %s switch",
-			t.operatorConfigGVR.Resource, t.operatorConfigName, minTLSVersion, profileLabel)
+			target.configGVR.Resource, target.configName, minTLSVersion, profileLabel)
 	}
 }
 
